@@ -2,46 +2,57 @@ import numba
 import numpy as np
 
 
-class SeamFinder(object):
+@numba.njit
+def find_seam(energy_map: np.ndarray) -> np.ndarray:
     """
     Find the seam with the lowest energy in an image.
+
+    Args:
+        energy_map (np.ndarray): The energy map of the image of shape (h, w).
+
+    Returns:
+        np.ndarray: The seam with the lowest energy of shape (h,).
     """
+    assert len(energy_map.shape) == 2, "The input energy map must be a 2D matrix."
 
-    @staticmethod
-    @numba.jit
-    def find_naive(mat: np.ndarray) -> np.ndarray:
-        """
-        Find the seam with the lowest energy in an image using the naive method.
+    h, w = energy_map.shape
 
-        Args:
-            mat (np.ndarray): The image to find the seam in.
+    # Build the cumulative energy map
+    cumulative_energy_map = np.zeros_like(energy_map)
+    cumulative_energy_map[0] = energy_map[0]  # Initial value
+    preceding = np.zeros(3)
+    for y in range(1, h):
+        for x in range(w):
+            self = energy_map[y, x]
 
-        Returns:
-            np.ndarray: The seam with the lowest energy.
-        """
-        assert len(mat.shape) == 2, "The input energy map must be a 2D matrix."
+            # Previous row (cumulated)
+            left = cumulative_energy_map[y - 1, x - 1] if x - 1 >= 0 else np.inf
+            middle = cumulative_energy_map[y - 1, x]
+            right = cumulative_energy_map[y - 1, x + 1] if x + 1 < w else np.inf
 
-        h, w = mat.shape
-        cum_energy = np.zeros_like(mat)
-        cum_energy[0] = mat[0]
+            preceding[0] = left
+            preceding[1] = middle
+            preceding[2] = right
+            # The energy of the current pixel is the sum of its own energy and the minimum of the
+            # three possible paths from the previous row to the current pixel.
+            cumulative_energy_map[y, x] = self + np.min(preceding)
 
-        for i in range(1, h):
-            for j in range(w):
-                left = cum_energy[i - 1, j - 1] if j > 0 else np.inf
-                middle = cum_energy[i - 1, j]
-                right = cum_energy[i - 1, j + 1] if j < mat.shape[1] - 1 else np.inf
+    # Find the seam with the lowest energy
+    seam = np.zeros(h, dtype=np.int32)
+    # The last pixel of the seam is the one with the lowest energy in the last row
+    seam[-1] = np.argmin(cumulative_energy_map[-1])
 
-                cum_energy[i, j] = mat[i, j] + np.min(np.array([left, middle, right]))
+    # y \in [h - 2, 0]
+    for y in range(h - 2, -1, -1):  # From the second last row to the first row
+        x = seam[y + 1]
+        left = cumulative_energy_map[y, x - 1] if x - 1 >= 0 else np.inf
+        middle = cumulative_energy_map[y, x]
+        right = cumulative_energy_map[y, x + 1] if x + 1 < w else np.inf
 
-        seam = np.zeros(h, dtype=np.int32)
-        seam[-1] = np.argmin(cum_energy[-1])
+        preceding[0] = left
+        preceding[1] = middle
+        preceding[2] = right
+        seam[y] = x + np.argmin(preceding) - 1
+        # assert 0 <= seam[y] < w, f"The seam must be within the image boundaries. ({y=})"
 
-        for i in range(h - 2, -1, -1):
-            j = seam[i + 1]
-            left = cum_energy[i, j - 1] if j > 0 else np.inf
-            middle = cum_energy[i, j]
-            right = cum_energy[i, j + 1] if j < mat.shape[1] - 1 else np.inf
-
-            seam[i] = j + np.argmin(np.array([left, middle, right])) - 1
-
-        return seam
+    return seam.astype(np.int32)
