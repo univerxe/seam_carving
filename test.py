@@ -1,33 +1,17 @@
-from copy import deepcopy
-
 import cv2
-from tqdm import trange
 
 from src.algorithms.energy import EnergyCalculator
-from src.algorithms.seam import find_seam
-from src.algorithms.carving import carving_seam
+from src.algorithms.seam import SeamFinder
+from src.lib import CarvableImage
 
-img = cv2.imread("images/castle_small.png")
-carved = img.copy()
+carvable = CarvableImage.from_path("images/castle_small.png")
 
-energy_map = EnergyCalculator.squared_diff(img)
-cv2.imshow("Energy Map", energy_map.astype("uint8"))
-cv2.waitKey(0)
+carvable.energy_function = EnergyCalculator.squared_diff
+carvable.seam_function = SeamFinder.find_seam
+num_seams = int(input("Enter the number of seams: "))
 
-seam = find_seam(energy_map)
-seam_img = img.copy()
-for y, x in enumerate(seam):
-    seam_img[y, x] = [0, 0, 255]
-cv2.imshow("Seam", seam_img)
-cv2.waitKey(0)
+carved = carvable.seam_carve(num_seams, show_progress=True)
 
-i: int = 0
-for i in trange(100, ncols=100):
-    energy_map = EnergyCalculator.squared_diff(carved)
-    seam = find_seam(energy_map)
-    carved = carving_seam(carved, seam)
-
-cv2.imshow("Original", img)
-cv2.imshow(f"Carved {i+1} times", carved)
-
+carvable.img.show()
+carved.img.show(f"Seam carving x {num_seams} times")
 cv2.waitKey(0)

@@ -3,7 +3,7 @@ import numpy as np
 
 
 @numba.njit
-def carving_seam(mat: np.ndarray, seam: np.ndarray) -> np.ndarray:
+def carve_seam(mat: np.ndarray, seam: np.ndarray) -> np.ndarray:
     """
     Remove a seam from an image.
 
