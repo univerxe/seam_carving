@@ -59,3 +59,27 @@ class SeamFinder(object):
             # assert 0 <= seam[y] < w, f"The seam must be within the image boundaries. ({y=})"
 
         return seam.astype(np.int32)
+
+
+def draw_seam(mat: np.ndarray, seam: np.ndarray) -> np.ndarray:
+    """
+    Draw a seam on an image.
+
+    Args:
+        mat (np.ndarray): The image to draw the seam on.
+        seam (np.ndarray): The seam to draw.
+
+    Returns:
+        np.ndarray: The image with the seam drawn.
+    """
+    assert len(mat.shape) == 3, "The input image must be a 3D matrix."
+
+    h, w, c = mat.shape
+    assert len(seam) == h, "The seam must have the same height as the image."
+
+    mat = mat.copy()
+    for y in range(h):
+        x = seam[y]
+        mat[y, x] = [0, 0, 255]  # Red color
+
+    return mat

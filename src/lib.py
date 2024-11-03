@@ -1,3 +1,4 @@
+import time
 from copy import deepcopy
 
 import numpy as np
@@ -7,7 +8,7 @@ from tqdm import trange
 
 from src.algorithms.carving import carve_seam
 from src.algorithms.energy import EnergyCalculator
-from src.algorithms.seam import SeamFinder
+from src.algorithms.seam import SeamFinder, draw_seam
 
 
 class Image(object):
@@ -125,6 +126,29 @@ class CarvableImage(object):
             energy_map = self.energy_function(carved)
             seam = self.seam_function(energy_map)
             carved = carve_seam(carved, seam)
+
+        return CarvableImage(
+            Image(carved),
+            self.energy_function,
+            self.seam_function,
+        )
+
+    def interactive_seam_carve(
+        self,
+        num_seams: int,
+        title: str = "Interactive Seam Carving",
+    ) -> "CarvableImage":
+        carved: np.ndarray = self.img.mat.copy()
+
+        for _ in range(num_seams):
+            energy_map = self.energy_function(carved)
+            seam = self.seam_function(energy_map)
+            seam_img = draw_seam(carved, seam)
+            cv2.imshow(title, seam_img)
+            cv2.waitKey(10)
+            carved = carve_seam(carved, seam)
+
+        cv2.destroyWindow(title)
 
         return CarvableImage(
             Image(carved),
