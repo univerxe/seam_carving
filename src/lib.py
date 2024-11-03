@@ -1,16 +1,26 @@
+import time
 from copy import deepcopy
 
 import numpy as np
 import cv2
-from typing import Optional
-
+from typing import Optional, Callable
 from tqdm import trange
 
+from src.algorithms.carving import carve_seam
 from src.algorithms.energy import EnergyCalculator
-from src.algorithms.seam import SeamFinder
+from src.algorithms.seam import SeamFinder, draw_seam
 
 
 class Image(object):
+    @classmethod
+    def from_path(cls, path: str):
+        try:
+            mat = cv2.imread(path)
+        except Exception as e:
+            raise ValueError(f"Failed to read '{path}': {e}")
+
+        return cls(mat)
+
     def __init__(self, mat: np.ndarray):
         self._mat = deepcopy(mat)
         self._validate_mat()
@@ -23,6 +33,10 @@ class Image(object):
     def mat(self, value: np.ndarray):
         self._mat = value
         self._validate_mat()
+
+    @property
+    def shape(self) -> tuple:
+        return self.mat.shape
 
     def _validate_mat(self):
         if not isinstance(self.mat, np.ndarray):
@@ -41,122 +55,103 @@ class Image(object):
     def save(self, path: str):
         cv2.imwrite(path, self.mat)
 
+    def show(self, title: str = "Image", wait: bool = False):
+        cv2.imshow(title, self.mat)
+        if wait:
+            cv2.waitKey(0)
+
 
 class CarvableImage(object):
     """
-    Container for an image to perform seam-based operations.
+    Class for an image to perform seam-based operations.
     """
 
     @classmethod
     def from_path(cls, path: str):
-        try:
-            mat = cv2.imread(path)
-        except Exception as e:
-            raise ValueError(f"Failed to read '{path}': {e}")
+        return cls(Image.from_path(path))
 
-        return cls(mat)
+    def __init__(
+        self,
+        img: Image,
+        energy_function: Optional[
+            Callable[[np.ndarray], np.ndarray]
+        ] = EnergyCalculator.squared_diff,
+        seam_function: Optional[
+            Callable[[np.ndarray], np.ndarray]
+        ] = SeamFinder.find_seam,
+    ):
+        self._img = img
 
-    def __init__(self, mat: np.ndarray):
-        self._image = Image(mat)
-        self._energy: Optional[np.ndarray] = None
+        self._energy_function = energy_function
+        self._seam_function = seam_function
 
-    @property
-    def mat(self) -> np.ndarray:
-        """
-        Return the data of the image.
-        """
-        return self._image.mat
+        self._validate_functions()
 
-    @property
-    def shape(self) -> tuple[int, int]:
-        """
-        Return the shape of the image.
-
-        Returns:
-            tuple[int, int]: The height and width of the image.
-        """
-        return self.mat.shape[0], self.mat.shape[1]
+    def _validate_functions(self):
+        # TODO: Validate the energy and seam functions
+        ...
 
     @property
-    def channels(self) -> int:
-        """
-        Return the number of channels in the image.
-
-        Returns:
-            int: The number of channels in the image.
-        """
-        return self.mat.shape[2]
+    def img(self) -> Image:
+        return self._img
 
     @property
-    def energy(self) -> Optional[np.ndarray]:
-        return self._energy
+    def energy_function(self) -> Callable[[np.ndarray], np.ndarray]:
+        return self._energy_function
 
-    @energy.setter
-    def energy(self, value: np.ndarray):
-        self._energy = value
-        self._validate_energy()
+    @energy_function.setter
+    def energy_function(self, value: Callable[[np.ndarray], np.ndarray]):
+        self._energy_function = value
+        self._validate_functions()
 
-    def _validate_energy(self):
-        assert self.energy is not None
-        assert self.energy.shape == self.shape, (
-            f"Energy map must have the same shape as the image: "
-            f"{self.energy.shape} != {self.shape}"
+    @property
+    def seam_function(self) -> Callable[[np.ndarray], np.ndarray]:
+        return self._seam_function
+
+    @seam_function.setter
+    def seam_function(self, value: Callable[[np.ndarray], np.ndarray]):
+        self._seam_function = value
+        self._validate_functions()
+
+    def seam_carve(
+        self,
+        num_seams: int,
+        show_progress: bool = False,
+    ) -> "CarvableImage":
+        carved: np.ndarray = self.img.mat.copy()
+
+        it = trange(num_seams, ncols=100) if show_progress else range(num_seams)
+
+        for _ in it:
+            energy_map = self.energy_function(carved)
+            seam = self.seam_function(energy_map)
+            carved = carve_seam(carved, seam)
+
+        return CarvableImage(
+            Image(carved),
+            self.energy_function,
+            self.seam_function,
         )
 
-    def _find_seam(self) -> np.ndarray:
-        """
-        Find the seam with the lowest energy in the image.
+    def interactive_seam_carve(
+        self,
+        num_seams: int,
+        title: str = "Interactive Seam Carving",
+    ) -> "CarvableImage":
+        carved: np.ndarray = self.img.mat.copy()
 
-        Returns:
-            np.ndarray: The seam with the lowest energy.
-        """
-        assert (
-            self.energy is not None
-        ), "Energy map must be calculated before finding a seam."
-        return SeamFinder.find_naive(self.energy)
+        for _ in range(num_seams):
+            energy_map = self.energy_function(carved)
+            seam = self.seam_function(energy_map)
+            seam_img = draw_seam(carved, seam)
+            cv2.imshow(title, seam_img)
+            cv2.waitKey(10)
+            carved = carve_seam(carved, seam)
 
-    def _remove_seam(self, seam: np.ndarray):
-        """
-        Remove the seam from the image.
+        cv2.destroyWindow(title)
 
-        Args:
-            seam (np.ndarray): The seam to remove.
-        """
-        h, w, c = self.mat.shape
-        new_mat = np.zeros(
-            (h, w - 1, c),
-            dtype=np.uint8,
+        return CarvableImage(
+            Image(carved),
+            self.energy_function,
+            self.seam_function,
         )
-
-        for i in range(h):
-            j = seam[i]
-            new_mat[i, :, 0] = np.delete(self.mat[i, :, 0], j)
-            new_mat[i, :, 1] = np.delete(self.mat[i, :, 1], j)
-            new_mat[i, :, 2] = np.delete(self.mat[i, :, 2], j)
-
-        self._image.mat = new_mat
-
-    def calculate_energy(self, method: str):
-        energy_func = getattr(EnergyCalculator, method)
-        self.energy = energy_func(self.mat)
-
-    def carve(self, num_iter: int, energy_method: str = "laplacian"):
-        """
-        Carve the image by removing seams.
-
-        Args:
-            num_iter (int): The number of seams to remove.
-            energy_method (str): The method to use to calculate the energy of the image.
-        """
-
-        for _ in trange(num_iter, ncols=80):
-            if hasattr(EnergyCalculator, energy_method):
-                self.calculate_energy(energy_method)
-            seam = self._find_seam()
-            self._remove_seam(seam)
-
-    def show(self):
-        """
-        Display the image.
-        """
-        cv2.imshow("Carvable Image", self.mat)
