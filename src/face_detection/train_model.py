@@ -1,32 +1,37 @@
 import numpy as np
+import logging
 
 from data_loader import load_images_from_folder
 from integral_image import compute_integral_image
 from haar_features import HaarFeature
 from classifier import FaceClassifier
-from utils import normalize_images
+from utils import normalize_images, sliding_window
 
 
 def extract_features(images, feature_list):
     feature_vectors = []
     for img in images:
         integral_img = compute_integral_image(img)
-        image_height, image_width = img.shape
-        top_left = (0, 0)
-        window_sizes = [(24, 24), (48, 48), (72, 72), (96, 96)]
+        # window_sizes = [(24, 24), (48, 48), (72, 72), (96, 96)]
+        window_sizes = [(96, 96)]
+        step_size = 10
         for window_size in window_sizes:
-            features = [
-                feature.compute_feature(integral_img, top_left, window_size)
-                for feature in feature_list
-            ]
-            feature_vectors.append(features)
+            for (x, y, window) in sliding_window(img, step_size, window_size):
+                features = [
+                    feature.compute_feature(integral_img, (x, y), window_size)
+                    for feature in feature_list
+                ]
+                feature_vectors.append(features)
+        logging.info(f"Image {len(feature_vectors)}")
+
     return np.array(feature_vectors)
 
 
 if __name__ == "__main__":
     # Load data
-    face_images = load_images_from_folder("data/faces/")
-    non_face_images = load_images_from_folder("data/non_faces/")
+    face_images = load_images_from_folder("small_data/faces/")
+    non_face_images = load_images_from_folder("small_data/non_faces/")
+    logging.info("Data loaded")
 
     # Preprocess data
     face_images = normalize_images(face_images)

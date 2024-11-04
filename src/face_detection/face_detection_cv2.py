@@ -1,4 +1,3 @@
-# real_time_detection.py
 import cv2
 
 
