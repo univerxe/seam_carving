@@ -1,29 +1,29 @@
 import cv2
 import numpy as np
-from integral_image import compute_integral_image
-from haar_features import HaarFeature
-from classifier import FaceClassifier
-from utils import normalize_images, sliding_window
+
+from src.utils import sliding_window
+from src.haar_features import HaarFeature
+from src.classifier import FaceClassifier
+from src.integral_image import compute_integral_image
 
 
 def detect_face():
     # Load the pre-trained classifier
     classifier = FaceClassifier()
-    classifier.load_model("face_classifier.joblib")
+    classifier.load_model("model/face_classifier.joblib")
 
     # Define the Haar features used during training
     # For simplicity, we'll define a small set of features
     feature_list = [
         HaarFeature("two_horizontal", (0, 0), 1, 1),
         HaarFeature("two_vertical", (0, 0), 1, 1),
-        # HaarFeature("three_horizontal", (0, 0), 1, 1),
-        # HaarFeature("three_vertical", (0, 0), 1, 1),
+        HaarFeature("three_horizontal", (0, 0), 1, 1),
+        HaarFeature("three_vertical", (0, 0), 1, 1),
     ]
 
-    # Parameters
     # window_sizes = [(24, 24), (48, 48), (72, 72), (96, 96)] 
     window_sizes = [(96, 96)]
-    step_size = 48  # Pixels to move the window
+    step_size = 24  # Pixels to move the window
 
     cap = cv2.VideoCapture(0)
 
@@ -78,4 +78,5 @@ def detect_face():
     cv2.destroyAllWindows()
 
 
-detect_face()
+if __name__ == "__main__":
+    detect_face()

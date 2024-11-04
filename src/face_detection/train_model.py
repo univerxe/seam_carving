@@ -1,43 +1,20 @@
-import numpy as np
 import logging
 
-from data_loader import load_images_from_folder
-from integral_image import compute_integral_image
-from haar_features import HaarFeature
-from classifier import FaceClassifier
-from utils import normalize_images, sliding_window
+import numpy as np
 
-
-def extract_features(images, feature_list):
-    feature_vectors = []
-    for img_index, img in enumerate(images):
-        try:
-            integral_img = compute_integral_image(img)
-            # window_sizes = [(24, 24), (48, 48), (72, 72), (96, 96)]
-            window_sizes = [(96, 96)]
-            step_size = 48
-            for window_size in window_sizes:
-                for (x, y, window) in sliding_window(img, step_size, window_size):
-                    features = [
-                        feature.compute_feature(integral_img, (x, y), window_size)
-                        for feature in feature_list
-                    ]
-                    feature_vectors.append(features)
-            
-            # Log the number of features extracted for the current image
-            logging.info(f"Extracted {len(feature_vectors)} features from image")
-        except Exception as e:
-            logging.error(f"Error processing image {img_index}: {e}")
-
-    return np.array(feature_vectors)
+from src.utils import normalize_images
+from src.haar_features import HaarFeature
+from src.classifier import FaceClassifier
+from src.feature_extractor import extract_features
+from src.data_loader import load_images_from_folder
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logging.info("Start...")
     # Load data
-    face_images = load_images_from_folder("small_data/faces/")
-    non_face_images = load_images_from_folder("small_data/non_faces/")
+    face_images = load_images_from_folder("data_10pics/faces/", (320, 240))
+    non_face_images = load_images_from_folder("data_10pics/non_faces/", (320, 240))
     logging.info("Data loaded")
 
     # Preprocess data
@@ -48,8 +25,8 @@ if __name__ == "__main__":
     feature_list = [
         HaarFeature("two_horizontal", (0, 0), 1, 1),
         HaarFeature("two_vertical", (0, 0), 1, 1),
-        # HaarFeature("three_horizontal", (0, 0), 1, 1),
-        # HaarFeature("three_vertical", (0, 0), 1, 1),
+        HaarFeature("three_horizontal", (0, 0), 1, 1),
+        HaarFeature("three_vertical", (0, 0), 1, 1),
     ]
 
     # Extract features
@@ -64,4 +41,4 @@ if __name__ == "__main__":
     classifier.train(X, y)
 
     # Save the model
-    classifier.save_model("face_classifier.joblib")
+    classifier.save_model("model/face_classifier.joblib")
