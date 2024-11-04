@@ -16,13 +16,14 @@ def detect_face():
     feature_list = [
         HaarFeature("two_horizontal", (0, 0), 1, 1),
         HaarFeature("two_vertical", (0, 0), 1, 1),
-        HaarFeature("three_horizontal", (0, 0), 1, 1),
-        HaarFeature("three_vertical", (0, 0), 1, 1),
+        # HaarFeature("three_horizontal", (0, 0), 1, 1),
+        # HaarFeature("three_vertical", (0, 0), 1, 1),
     ]
 
     # Parameters
-    window_sizes = [(24, 24), (48, 48), (72, 72), (96, 96)]  # Different scales
-    step_size = 10  # Pixels to move the window
+    # window_sizes = [(24, 24), (48, 48), (72, 72), (96, 96)] 
+    window_sizes = [(96, 96)]
+    step_size = 48  # Pixels to move the window
 
     cap = cv2.VideoCapture(0)
 

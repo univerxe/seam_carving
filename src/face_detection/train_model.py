@@ -10,24 +10,31 @@ from utils import normalize_images, sliding_window
 
 def extract_features(images, feature_list):
     feature_vectors = []
-    for img in images:
-        integral_img = compute_integral_image(img)
-        # window_sizes = [(24, 24), (48, 48), (72, 72), (96, 96)]
-        window_sizes = [(96, 96)]
-        step_size = 10
-        for window_size in window_sizes:
-            for (x, y, window) in sliding_window(img, step_size, window_size):
-                features = [
-                    feature.compute_feature(integral_img, (x, y), window_size)
-                    for feature in feature_list
-                ]
-                feature_vectors.append(features)
-        logging.info(f"Image {len(feature_vectors)}")
+    for img_index, img in enumerate(images):
+        try:
+            integral_img = compute_integral_image(img)
+            # window_sizes = [(24, 24), (48, 48), (72, 72), (96, 96)]
+            window_sizes = [(96, 96)]
+            step_size = 48
+            for window_size in window_sizes:
+                for (x, y, window) in sliding_window(img, step_size, window_size):
+                    features = [
+                        feature.compute_feature(integral_img, (x, y), window_size)
+                        for feature in feature_list
+                    ]
+                    feature_vectors.append(features)
+            
+            # Log the number of features extracted for the current image
+            logging.info(f"Extracted {len(feature_vectors)} features from image")
+        except Exception as e:
+            logging.error(f"Error processing image {img_index}: {e}")
 
     return np.array(feature_vectors)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    logging.info("Start...")
     # Load data
     face_images = load_images_from_folder("small_data/faces/")
     non_face_images = load_images_from_folder("small_data/non_faces/")
@@ -41,8 +48,8 @@ if __name__ == "__main__":
     feature_list = [
         HaarFeature("two_horizontal", (0, 0), 1, 1),
         HaarFeature("two_vertical", (0, 0), 1, 1),
-        HaarFeature("three_horizontal", (0, 0), 1, 1),
-        HaarFeature("three_vertical", (0, 0), 1, 1),
+        # HaarFeature("three_horizontal", (0, 0), 1, 1),
+        # HaarFeature("three_vertical", (0, 0), 1, 1),
     ]
 
     # Extract features
@@ -52,6 +59,7 @@ if __name__ == "__main__":
     y = np.hstack((np.ones(len(X_faces)), np.zeros(len(X_non_faces))))
 
     # Train classifier
+    logging.info("Training...")
     classifier = FaceClassifier()
     classifier.train(X, y)
 
