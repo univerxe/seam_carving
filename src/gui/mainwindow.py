@@ -24,8 +24,8 @@ class AppStyles:
             background-color: #0C8CE9;
             color: white;
             border-radius: 5px;
-            padding: 10px 20px; /* Adjust padding for button size */
-            font-size: 16px;   /* Dynamic font size for buttons */
+            padding: 10px 20px; 
+            font-size: 16px;  
         }
         QPushButton:hover {
             background-color: #005A9E;
@@ -40,7 +40,7 @@ class AppStyles:
             border-radius: 5px;
             padding: 10px;
             font-size: 16px;
-            min-width: 150px; /* Minimum width of the input field */
+            min-width: 150px;
         }
         
         QComboBox::drop-down {
@@ -53,7 +53,7 @@ class AppStyles:
         }
         
         QComboBox::down-arrow {
-            image: url("X:/2024-2/Projects/Seam Carving Dev/seam_carving/src/gui/assets/down_arrow.png");
+            image: url("./src/gui/assets/down_arrow.png");
             
             width: 20px;
             height: 20px;
@@ -83,7 +83,7 @@ class AppStyles:
         QLabel {
             border: 2px solid gray;
             background-color: white;
-            color: gray;
+            color: white;
             font-size: 18px;
         }
     """
@@ -101,16 +101,15 @@ class AppStyles:
         }
     """
 
-
 class MainWindow(QMainWindow):
     """
-    Main window class for interactive seam carving with centralized styling.
+    Main window for the application. Contains the main UI elements and logic.
     """
 
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Seam Carving")
-        self.setGeometry(100, 100, 1000, 800)
+        self.setGeometry(200, 200, 1000, 800)
         self.setStyleSheet(AppStyles.WINDOW_STYLE)
 
         self.original_image = None
@@ -160,7 +159,7 @@ class MainWindow(QMainWindow):
 
         # Aspect Ratio Dropdown
         self.aspect_ratio_dropdown = QComboBox()
-        self.aspect_ratio_dropdown.addItems(["16:9", "4:5 (Instagram Post)", "1:1", "3:4", "9:16", "Custom"])
+        self.aspect_ratio_dropdown.addItems(["16:9", "4:5", "1:1", "3:4", "9:16", "Custom"])
         self.aspect_ratio_dropdown.setStyleSheet(AppStyles.DROP_DOWN_STYLE)
         
         # Seam Input
@@ -171,12 +170,14 @@ class MainWindow(QMainWindow):
         # Carve Button
         self.carve_button = QPushButton("Resize Image")
         self.carve_button.setStyleSheet(AppStyles.BUTTON_STYLE)
-        self.carve_button.clicked.connect(self.st_seam_carving)
+        self.carve_button.clicked.connect(self.start_seam_carving) # st_seam_carving
+        ##############################
+        
 
         # Add to layout
         button_layout.addWidget(self.load_button)
         button_layout.addWidget(self.aspect_ratio_dropdown)
-        button_layout.addWidget(self.seams_input)
+        # button_layout.addWidget(self.seams_input) # seams_input enter box
         button_layout.addWidget(self.carve_button)
 
         controls_layout.addLayout(button_layout)
@@ -188,8 +189,8 @@ class MainWindow(QMainWindow):
         image_layout = QHBoxLayout()
         image_display_group.setLayout(image_layout)
 
-        self.original_image_label = self._create_image_label("Before (Original Image)")
-        self.carved_image_label = self._create_image_label("After (Carved Image)")
+        self.original_image_label = self._create_image_label("Original Image")
+        self.carved_image_label = self._create_image_label("Resized Image)")
 
         image_layout.addWidget(self.original_image_label)
         image_layout.addWidget(self.carved_image_label)
@@ -204,8 +205,8 @@ class MainWindow(QMainWindow):
         image_label.setAlignment(Qt.AlignCenter)
         image_label.setStyleSheet(AppStyles.IMAGE_LABEL_STYLE)
         image_label.setText("No Image Loaded")  # Placeholder text
-        # image_label.setMinimumSize(700, 500)
-
+        # image_label.setMinimumSize(700, 500) # fixed image label size
+ 
         layout.addWidget(label_text)
         layout.addWidget(image_label)
         return image_label
@@ -223,64 +224,96 @@ class MainWindow(QMainWindow):
         file_path, _ = QFileDialog.getSaveFileName(self, "Save Image as", "", "Images (*.png *.xpm *.jpg *.bmp)")
         if file_path:
             self.carved_image.save(file_path)
-            
+             
+    def ratio_to_num_seams(self, original_width, original_height, aspect_ratio):
+        """
+        Convert an aspect ratio to the number of seams required to resize an image.
 
-    def st_seam_carving(self):
-        if not self.original_image:
-            return
+          Args:
+            original_width (int): The width of the original image.
+            original_height (int): The height of the original image.
+            aspect_ratio (str): The desired aspect ratio in the format "width:height" (e.g., "16:9").
 
+          Returns:
+            tuple: A tuple containing the number of vertical seams and horizontal seams (vertical_seams, horizontal_seams).
+        """
+       
         try:
-            num_v_seams = int(self.seams_input.text())
-            num_h_seams = int(self.seams_input.text())
-            
-            if num_v_seams < 1 or num_h_seams < 1:
-                return
-
+            width_ratio, height_ratio = map(int, aspect_ratio.split(':'))
         except ValueError:
-            return
+            raise ValueError("Aspect ratio must be in the format 'width:height', e.g., '16:9'.")
 
-        # Vertical seam carving
-        carvable_image = CarvableImage(self.original_image)
-        carvable_image.energy_function = EnergyCalculator.squared_diff
-        carvable_image.seam_function = SeamFinder.find_seam
-        # carved_data = carvable_image.seam_carve(num_seams).img.mat
-        carved_data = carvable_image.interactive_seam_carve(num_v_seams).img.mat
-        
-        # self.carved_image = Image(carved_data)
-        # self._display_image(self.carved_image.mat, self.carved_image_label)
-        
-        # Horizontal seam carving
-        carvable_image_hor = CarvableImage(Image(carved_data))
-        carvable_image_hor.img.mat = cv2.rotate(carvable_image_hor.img.mat, cv2.ROTATE_90_CLOCKWISE)
-        carvable_image_hor.energy_function = EnergyCalculator.squared_diff
-        carvable_image_hor.seam_function = SeamFinder.find_seam
-        carved_data_hor = carvable_image_hor.interactive_seam_carve(num_h_seams).img.mat
-        carved_data_hor = cv2.rotate(carved_data_hor, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        
-        self.carved_image = Image(carved_data_hor)
-        self._display_image(self.carved_image.mat, self.carved_image_label)
-        
-    
-    
-        
+        # Calculate the target dimensions
+        target_width = int(original_height * (width_ratio / height_ratio))
+        target_height = int(original_width * (height_ratio / width_ratio))
+
+        # Adjust target dimensions 
+        target_width = min(target_width, original_width)
+        target_height = min(target_height, original_height)
+
+        print(f"Target dimensions: Width={target_width}, Height={target_height}")
+
+        # Calculate the number of seams
+        vertical_seams = max(0, original_width - target_width)
+        horizontal_seams = max(0, original_height - target_height)
+
+        print(f"Calculated seams: Vertical={vertical_seams}, Horizontal={horizontal_seams}")
+
+        return vertical_seams, horizontal_seams
+
+
     def start_seam_carving(self):
         if not self.original_image:
+            print("No image loaded.")
             return
 
         try:
-            num_seams = int(self.seams_input.text())
-            if num_seams < 1:
-                return
+            aspect_ratio = self.aspect_ratio_dropdown.currentText()
+            print(f"aspect_ratio: {aspect_ratio}")
+            
+            original_height, original_width = self.original_image.mat.shape[:2]
+            print(f"width: {original_width} , height: {original_height}")
+            
+            # Convert aspect ratio to number of seams
+            num_v_seams, num_h_seams = self.ratio_to_num_seams(original_width, original_height, aspect_ratio)
+            print(num_v_seams, num_h_seams)
+            
         except ValueError:
+            print("Please enter a valid integer for seams.")
             return
-
-        carvable_image = CarvableImage(self.original_image)
-        carvable_image.energy_function = EnergyCalculator.squared_diff
-        carvable_image.seam_function = SeamFinder.find_seam
-        carved_data = carvable_image.seam_carve(num_seams).img.mat
-
-        self.carved_image = Image(carved_data)
-        self._display_image(self.carved_image.mat, self.carved_image_label)
+        
+        # Vertical seam carving (reduce width)
+        try: 
+            carvable_image = CarvableImage(self.original_image)
+            carvable_image.energy_function = EnergyCalculator.squared_diff
+            carvable_image.seam_function = SeamFinder.find_seam
+            carved_data = carvable_image.seam_carve(num_v_seams).img.mat
+        except Exception as e:
+            print(f"Error in vertical seam carving: {e}")
+            return
+        
+        self.vertical_save = Image(carved_data)
+        
+        # Horizontal seam carving (reduce height)
+        try:
+            carvable_image_hor = CarvableImage(self.vertical_save)
+            carvable_image_hor.img.mat = cv2.rotate(carvable_image_hor.img.mat, cv2.ROTATE_90_CLOCKWISE)
+            carvable_image_hor.energy_function = EnergyCalculator.squared_diff
+            carvable_image_hor.seam_function = SeamFinder.find_seam
+            carved_data_hor = carvable_image_hor.seam_carve(num_h_seams).img.mat
+            carved_data_hor = cv2.rotate(carved_data_hor, cv2.ROTATE_90_COUNTERCLOCKWISE)    
+    
+        except Exception as e:
+            print(f"Error in horizontal seam carving: {e}")
+            return
+        
+        try:
+            self.final_image = Image(carved_data_hor)
+            self._display_image(self.final_image.mat, self.carved_image_label)
+        except Exception as e:
+            print(f"Error in displaying the carved image: {e}")
+            return
+        
 
     def _display_image(self, image_data, label):
         height, width, channel = image_data.shape
