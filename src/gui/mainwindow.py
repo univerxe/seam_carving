@@ -251,7 +251,7 @@ class MainWindow(QMainWindow):
         label_text = QLabel(text)
         label_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        image_label = QLabel()
+        image_label = QLabel(self)
         image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         image_label.setStyleSheet(AppStyles.IMAGE_LABEL_STYLE)
         image_label.setText("No Image Loaded")  # Placeholder text
@@ -324,6 +324,9 @@ class MainWindow(QMainWindow):
         if not self.original_image:
             print("No image loaded.")
             return
+        self.carved_image_label.setText("Processing...")
+        self.carved_image_label.repaint()
+        QApplication.processEvents()
 
         try:
             aspect_ratio = self.aspect_ratio_dropdown.currentText()
