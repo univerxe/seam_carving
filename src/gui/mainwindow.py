@@ -365,7 +365,7 @@ class MainWindow(QMainWindow):
             print("Please enter a valid integer for seams.")
             return
 
-        # Vertical seam carving (reduce width)
+        # Vertical seam carving (enlarge width)
         try:
             enlarge_image = CarvableImage(self.original_image)
             enlarge_image.energy_function = EnergyCalculator.squared_diff
@@ -378,7 +378,7 @@ class MainWindow(QMainWindow):
 
         enlarged_vertical_save = Image(enlarged_data)
 
-        # Horizontal seam carving (reduce height)
+        # Horizontal seam carving (enlarge height)
         try:
             enlarge_image_hor = CarvableImage(enlarged_vertical_save)
             enlarge_image_hor.img.mat = cv2.rotate(enlarge_image_hor.img.mat, cv2.ROTATE_90_CLOCKWISE)
