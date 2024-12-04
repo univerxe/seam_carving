@@ -6,7 +6,7 @@ import cv2
 from typing import Optional, Callable
 from tqdm import trange
 
-from src.algorithms.carving import carve_seam
+from src.algorithms.carving import carve_seam, carve_seam_enlarge
 from src.algorithms.energy import EnergyCalculator
 from src.algorithms.seam import SeamFinder, draw_seam
 
@@ -129,6 +129,35 @@ class CarvableImage(object):
 
         return CarvableImage(
             Image(carved),
+            self.energy_function,
+            self.seam_function,
+        )
+
+    def seam_carve_enlarge(
+        self,
+        num_seams: int,
+        show_progress: bool = False,
+    ) -> "CarvableImage":
+        enlarged: np.ndarray = self.img.mat.copy()
+        carved: np.ndarray = self.img.mat.copy()
+
+        it = trange(num_seams // 10, ncols=100) if show_progress else range(num_seams)
+
+        seams_to_insert = []
+        adjusted_seams = []
+        for _ in range(num_seams):
+            energy_map = self.energy_function(carved)
+            seam = self.seam_function(energy_map)
+            seams_to_insert.append(seam)
+            carved = draw_seam(carved, seam)
+
+        for seam in reversed(seams_to_insert):
+            enlarged = carve_seam_enlarge(enlarged, seam)
+
+
+
+        return CarvableImage(
+            Image(enlarged),
             self.energy_function,
             self.seam_function,
         )

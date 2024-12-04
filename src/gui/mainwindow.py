@@ -130,8 +130,12 @@ class MainWindow(QMainWindow):
 
         # Add Image Display
         image_display_group = self._create_image_display_group()
-        main_layout.addWidget(image_display_group)
-        
+        main_layout.addWidget(image_display_group, stretch=1)
+
+        # Add Enlarge Controls
+        enlarge_controls_group = self._create_enlarge_controls_group()
+        main_layout.addWidget(enlarge_controls_group, alignment=Qt.AlignCenter)
+
         # Add Export Button
         export_layout = QHBoxLayout()
         export_layout.setAlignment(Qt.AlignCenter)
@@ -172,14 +176,45 @@ class MainWindow(QMainWindow):
         self.carve_button.setStyleSheet(AppStyles.BUTTON_STYLE)
         self.carve_button.clicked.connect(self.start_seam_carving) # st_seam_carving
         ##############################
-        
+
 
         # Add to layout
         button_layout.addWidget(self.load_button)
         button_layout.addWidget(self.aspect_ratio_dropdown)
         # button_layout.addWidget(self.seams_input) # seams_input enter box
         button_layout.addWidget(self.carve_button)
+        controls_layout.addLayout(button_layout)
+        return controls_group
 
+    def _create_enlarge_controls_group(self):
+        controls_group = QGroupBox("Enlarge Controls")
+        controls_group.setStyleSheet(AppStyles.GROUP_BOX_STYLE)
+        controls_layout = QVBoxLayout()
+        controls_group.setLayout(controls_layout)
+
+        button_layout = QHBoxLayout()
+        button_layout.setAlignment(Qt.AlignCenter)
+
+        # Seam Input - Width
+        self.seams_input_width = QLineEdit()
+        self.seams_input_width.setPlaceholderText("Width")
+        self.seams_input_width.setStyleSheet(AppStyles.LINE_EDIT_STYLE)
+
+        # Seam Input - Height
+        self.seams_input_height = QLineEdit()
+        self.seams_input_height.setPlaceholderText("Height")
+        self.seams_input_height.setStyleSheet(AppStyles.LINE_EDIT_STYLE)
+
+        # Carve Button
+        self.carve_button = QPushButton("Enlarge Image")
+        self.carve_button.setStyleSheet(AppStyles.BUTTON_STYLE)
+        self.carve_button.clicked.connect(self.start_seam_enlarge)  # st_seam_carving
+        ##############################
+
+        # Add to layout
+        button_layout.addWidget(self.seams_input_width)
+        button_layout.addWidget(self.seams_input_height)
+        button_layout.addWidget(self.carve_button)
         controls_layout.addLayout(button_layout)
         return controls_group
 
@@ -218,12 +253,13 @@ class MainWindow(QMainWindow):
             self._display_image(self.original_image.mat, self.original_image_label)
             
     def export_image(self):
-        if not self.carved_image:
+        if not self.final_image:
             return
 
         file_path, _ = QFileDialog.getSaveFileName(self, "Save Image as", "", "Images (*.png *.xpm *.jpg *.bmp)")
         if file_path:
-            self.carved_image.save(file_path)
+            print(file_path)
+            self.final_image.save(file_path)
              
     def ratio_to_num_seams(self, original_width, original_height, aspect_ratio):
         """
@@ -313,7 +349,54 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"Error in displaying the carved image: {e}")
             return
-        
+
+    def start_seam_enlarge(self):
+        if not self.original_image:
+            print("No image loaded.")
+            return
+
+        try:
+            width_pixel = int(self.seams_input_width.text())
+            height_pixel = int(self.seams_input_height.text())
+            print(f"width: {width_pixel} , height: {height_pixel}")
+
+
+        except ValueError:
+            print("Please enter a valid integer for seams.")
+            return
+
+        # Vertical seam carving (reduce width)
+        try:
+            enlarge_image = CarvableImage(self.original_image)
+            enlarge_image.energy_function = EnergyCalculator.squared_diff
+            enlarge_image.seam_function = SeamFinder.find_seam
+            enlarged_data = enlarge_image.seam_carve_enlarge(width_pixel).img.mat
+
+        except Exception as e:
+            print(f"Error in vertical seam carving: {e}")
+            return
+
+        enlarged_vertical_save = Image(enlarged_data)
+
+        # Horizontal seam carving (reduce height)
+        try:
+            enlarge_image_hor = CarvableImage(enlarged_vertical_save)
+            enlarge_image_hor.img.mat = cv2.rotate(enlarge_image_hor.img.mat, cv2.ROTATE_90_CLOCKWISE)
+            enlarge_image_hor.energy_function = EnergyCalculator.squared_diff
+            enlarge_image_hor.seam_function = SeamFinder.find_seam
+            enlarged_data_hor = enlarge_image_hor.seam_carve_enlarge(height_pixel).img.mat
+            enlarged_data_hor = cv2.rotate(enlarged_data_hor, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+        except Exception as e:
+            print(f"Error in horizontal seam carving: {e}")
+            return
+
+        try:
+            self.final_image = Image(enlarged_data_hor)
+            self._display_image(self.final_image.mat, self.carved_image_label)
+        except Exception as e:
+            print(f"Error in displaying the carved image: {e}")
+            return
 
     def _display_image(self, image_data, label):
         height, width, channel = image_data.shape
