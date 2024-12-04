@@ -16,88 +16,117 @@ class AppStyles:
     """
     WINDOW_STYLE = """
         QMainWindow {
-            background-color: #2C2C2C;
+            background-color: #1E1E2F; /* Darker, modern background */
+            color: #FFFFFF; /* Default text color */
         }
     """
+
     BUTTON_STYLE = """
         QPushButton {
-            background-color: #0C8CE9;
-            color: white;
-            border-radius: 5px;
-            padding: 10px 20px; 
-            font-size: 16px;  
+            background-color: #0066CC; /* Modern vibrant blue */
+            color: #FFFFFF; /* White text for contrast */
+            border: 2px solid #004C99; /* Stronger border for definition */
+            border-radius: 10px; /* Rounded edges for a sleek look */
+            padding: 10px 20px; /* Reduced padding for a smaller button */
+            font-size: 14px; /* Slightly smaller font size */
+            font-weight: 500; /* Balanced text weight */
+            font-family: 'Segoe UI', Arial, sans-serif; /* Clean and modern font */
         }
         QPushButton:hover {
-            background-color: #005A9E;
+            background-color: #004C99; /* Darker blue on hover */
+        }
+        QPushButton:pressed {
+            background-color: #003366; /* Deep blue for pressed state */
+        }
+        QPushButton:disabled {
+            background-color: #A6A6A6; /* Gray background for disabled button */
+            color: #E0E0E0; /* Light text for contrast */
+            border: 1px solid #7A7A7A; /* Subtle border for disabled state */
         }
     """
-    
+
+
+
     DROP_DOWN_STYLE = """
         QComboBox {
-            background-color: white;
-            color: black;
-            border: 1px solid gray;
-            border-radius: 5px;
-            padding: 10px;
-            font-size: 16px;
+            background-color: #2D2D3C; /* Subtle dark gray */
+            color: #FFFFFF;
+            border: 1px solid #444455; /* Soft border for contrast */
+            border-radius: 8px;
+            padding: 11px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
             min-width: 150px;
         }
         
         QComboBox::drop-down {
-            border: 0px;
-            background-color: white;
+            border: 0;
+            background-color: #2D2D3C;
             width: 30px;
-            border-top-right-radius: 5px;
-            border-bottom-right-radius: 5px;
-            
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
         }
         
         QComboBox::down-arrow {
             image: url("./src/gui/assets/down_arrow.png");
-            
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
         }
         
         QComboBox QAbstractItemView {
-            background-color: white; /* Dropdown background color */
-            color: black;
-            border: 1px solid gray;
-            selection-background-color: lightgray; /* Highlight color when selecting an option */
+            background-color: #3C3C4F; /* Dropdown background */
+            color: #FFFFFF;
+            border: 1px solid #555566;
+            selection-background-color: #444466; /* Selection color */
             font-size: 14px;
-        }   
+        }
     """
-    
+
     LINE_EDIT_STYLE = """
         QLineEdit {
-            background-color: white;
-            color: black;
-            border: 1px solid gray;
-            border-radius: 5px;
+            background-color: #FFFFFF;
+            color: #000000;
+            border: 1px solid #CCCCCC; /* Subtle light gray border */
+            border-radius: 8px;
             padding: 10px;
-            font-size: 16px;
-            min-width: 150px; /* Minimum width of the input field */
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+        }
+        QLineEdit:focus {
+            border-color: #0078D4; /* Blue border on focus */
+            outline: none;
         }
     """
+
     IMAGE_LABEL_STYLE = """
         QLabel {
-            border: 2px solid gray;
-            background-color: white;
-            color: white;
-            font-size: 18px;
+            border: 2px solid #444455;
+            background-color: #2D2D3C;
+            color: #FFFFFF;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            border-radius: 8px;
+            padding: 8px;
         }
     """
+
     GROUP_BOX_STYLE = """
         QGroupBox {
+            background-color: #2D2D3C; /* Dark gray background */
+            color: #FFFFFF;
+            border: 1px solid #444455; /* Subtle border */
+            border-radius: 8px;
+            padding: 15px;
             font-weight: bold;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 10px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
         }
         QGroupBox::title {
             subcontrol-origin: margin;
             subcontrol-position: top left;
             padding: 0 10px;
+            background-color: transparent; /* Match group box background */
+            color: #FFFFFF;
         }
     """
 
