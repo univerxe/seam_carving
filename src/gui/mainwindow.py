@@ -214,7 +214,6 @@ class MainWindow(QMainWindow):
         self.carve_button.setStyleSheet(AppStyles.BUTTON_STYLE)
         self.carve_button.clicked.connect(self.start_seam_enlarge)  # st_seam_carving
         ##############################
-
         # Add to layout
         button_layout.addWidget(self.seams_input_width)
         button_layout.addWidget(self.seams_input_height)
