@@ -16,90 +16,120 @@ class AppStyles:
     """
     WINDOW_STYLE = """
         QMainWindow {
-            background-color: #2C2C2C;
+            background-color: #1E1E2F; /* Darker, modern background */
+            color: #FFFFFF; /* Default text color */
         }
     """
+
     BUTTON_STYLE = """
         QPushButton {
-            background-color: #0C8CE9;
-            color: white;
-            border-radius: 5px;
-            padding: 10px 20px; 
-            font-size: 16px;  
+            background-color: #0066CC; /* Modern vibrant blue */
+            color: #FFFFFF; /* White text for contrast */
+            border: 2px solid #004C99; /* Stronger border for definition */
+            border-radius: 10px; /* Rounded edges for a sleek look */
+            padding: 10px 20px; /* Reduced padding for a smaller button */
+            font-size: 14px; /* Slightly smaller font size */
+            font-weight: 500; /* Balanced text weight */
+            font-family: 'Segoe UI', Arial, sans-serif; /* Clean and modern font */
         }
         QPushButton:hover {
-            background-color: #005A9E;
+            background-color: #004C99; /* Darker blue on hover */
+        }
+        QPushButton:pressed {
+            background-color: #003366; /* Deep blue for pressed state */
+        }
+        QPushButton:disabled {
+            background-color: #A6A6A6; /* Gray background for disabled button */
+            color: #E0E0E0; /* Light text for contrast */
+            border: 1px solid #7A7A7A; /* Subtle border for disabled state */
         }
     """
-    
+
+
+
     DROP_DOWN_STYLE = """
         QComboBox {
-            background-color: white;
-            color: black;
-            border: 1px solid gray;
-            border-radius: 5px;
-            padding: 10px;
-            font-size: 16px;
+            background-color: #2D2D3C; /* Subtle dark gray */
+            color: #FFFFFF;
+            border: 1px solid #444455; /* Soft border for contrast */
+            border-radius: 8px;
+            padding: 11px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
             min-width: 150px;
         }
         
         QComboBox::drop-down {
-            border: 0px;
-            background-color: white;
+            border: 0;
+            background-color: #2D2D3C;
             width: 30px;
-            border-top-right-radius: 5px;
-            border-bottom-right-radius: 5px;
-            
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
         }
         
         QComboBox::down-arrow {
             image: url("./src/gui/assets/down_arrow.png");
-            
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
         }
         
         QComboBox QAbstractItemView {
-            background-color: white; /* Dropdown background color */
-            color: black;
-            border: 1px solid gray;
-            selection-background-color: lightgray; /* Highlight color when selecting an option */
+            background-color: #3C3C4F; /* Dropdown background */
+            color: #FFFFFF;
+            border: 1px solid #555566;
+            selection-background-color: #444466; /* Selection color */
             font-size: 14px;
-        }   
+        }
     """
-    
+
     LINE_EDIT_STYLE = """
         QLineEdit {
-            background-color: white;
-            color: black;
-            border: 1px solid gray;
-            border-radius: 5px;
+            background-color: #FFFFFF;
+            color: #000000;
+            border: 1px solid #CCCCCC; /* Subtle light gray border */
+            border-radius: 8px;
             padding: 10px;
-            font-size: 16px;
-            min-width: 150px; /* Minimum width of the input field */
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+        }
+        QLineEdit:focus {
+            border-color: #0078D4; /* Blue border on focus */
+            outline: none;
         }
     """
+
     IMAGE_LABEL_STYLE = """
         QLabel {
-            border: 2px solid gray;
-            background-color: white;
-            color: white;
-            font-size: 18px;
+            border: 2px solid #444455;
+            background-color: #2D2D3C;
+            color: #FFFFFF;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            border-radius: 8px;
+            padding: 8px;
         }
     """
+
     GROUP_BOX_STYLE = """
         QGroupBox {
+            background-color: #2D2D3C; /* Dark gray background */
+            color: #FFFFFF;
+            border: 1px solid #444455; /* Subtle border */
+            border-radius: 8px;
+            padding: 15px;
             font-weight: bold;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 10px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
         }
         QGroupBox::title {
             subcontrol-origin: margin;
             subcontrol-position: top left;
             padding: 0 10px;
+            background-color: transparent; /* Match group box background */
+            color: #FFFFFF;
         }
     """
+
 
 class MainWindow(QMainWindow):
     """
@@ -124,13 +154,20 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout()
         central_widget.setLayout(main_layout)   
 
-        # Add other UI components
+        # Horizontal layout for Image Controls and Enlarge Controls
+        controls_layout = QHBoxLayout()
+        controls_layout.setAlignment(Qt.AlignCenter)
+        controls_layout.setSpacing(20)  # Add space between the controls    
+
+        # Add Image Controls and Enlarge Controls side by side
         controls_group = self._create_controls_group()
-        main_layout.addWidget(controls_group, alignment=Qt.AlignCenter) 
-
         enlarge_controls_group = self._create_enlarge_controls_group()
-        main_layout.addWidget(enlarge_controls_group, alignment=Qt.AlignCenter) 
+        controls_layout.addWidget(controls_group)
+        controls_layout.addWidget(enlarge_controls_group)   
 
+        main_layout.addLayout(controls_layout)  # Add controls layout to the main layout    
+
+        # Add Image Display Group
         image_display_group = self._create_image_display_group()
         main_layout.addWidget(image_display_group, stretch=1)   
 
@@ -151,6 +188,7 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(0)
         main_layout.addWidget(self.progress_bar)
 
+
     def _create_controls_group(self):
         controls_group = QGroupBox("Image Controls")
         controls_group.setStyleSheet(AppStyles.GROUP_BOX_STYLE)
@@ -167,7 +205,7 @@ class MainWindow(QMainWindow):
 
         # Aspect Ratio
         self.aspect_ratio_dropdown = QComboBox()
-        self.aspect_ratio_dropdown.addItems(["16:9", "4:5", "1:1", "3:4", "9:16", "Custom"])
+        self.aspect_ratio_dropdown.addItems(["16:9", "4:5", "1:1", "3:4", "9:16"])
         self.aspect_ratio_dropdown.setStyleSheet(AppStyles.DROP_DOWN_STYLE)
         
         # Seam Input
@@ -395,47 +433,67 @@ class MainWindow(QMainWindow):
             return
 
         try:
+            # Get user input for enlargement dimensions
             width_pixel = int(self.seams_input_width.text())
             height_pixel = int(self.seams_input_height.text())
-            print(f"width: {width_pixel} , height: {height_pixel}")
-
-
+            print(f"width: {width_pixel}, height: {height_pixel}")
+ 
+            # Initialize the progress bar
+            self.progress_bar.setValue(0)
+ 
         except ValueError:
             print("Please enter a valid integer for seams.")
             return
-
-        # Vertical seam carving (reduce width)
+ 
+        # Vertical seam enlargement (increase width)
         try:
             enlarge_image = CarvableImage(self.original_image)
             enlarge_image.energy_function = EnergyCalculator.squared_diff
             enlarge_image.seam_function = SeamFinder.find_seam
-            enlarged_data = enlarge_image.seam_carve_enlarge(width_pixel).img.mat
-
+ 
+            # Perform vertical seam enlargement one seam at a time
+            for i in range(1, width_pixel + 1):
+                enlarge_image.seam_carve_enlarge(1)  # Enlarge by one seam
+                self.progress_bar.setValue(int((i / width_pixel) * 50))  # Update progress bar (0% to 50%)
+ 
+            enlarged_data = enlarge_image.img.mat
+ 
         except Exception as e:
             print(f"Error in vertical seam carving: {e}")
             return
-
+ 
         enlarged_vertical_save = Image(enlarged_data)
-
-        # Horizontal seam carving (reduce height)
+ 
+        # Horizontal seam enlargement (increase height)
         try:
             enlarge_image_hor = CarvableImage(enlarged_vertical_save)
             enlarge_image_hor.img.mat = cv2.rotate(enlarge_image_hor.img.mat, cv2.ROTATE_90_CLOCKWISE)
             enlarge_image_hor.energy_function = EnergyCalculator.squared_diff
             enlarge_image_hor.seam_function = SeamFinder.find_seam
-            enlarged_data_hor = enlarge_image_hor.seam_carve_enlarge(height_pixel).img.mat
-            enlarged_data_hor = cv2.rotate(enlarged_data_hor, cv2.ROTATE_90_COUNTERCLOCKWISE)
-
+ 
+            # Perform horizontal seam enlargement one seam at a time
+            for i in range(1, height_pixel + 1):
+                enlarge_image_hor.seam_carve_enlarge(1)  # Enlarge by one seam
+                self.progress_bar.setValue(50 + int((i / height_pixel) * 50))  # Update progress bar (50% to 100%)
+ 
+            enlarged_data_hor = cv2.rotate(enlarge_image_hor.img.mat, cv2.ROTATE_90_COUNTERCLOCKWISE)
+ 
         except Exception as e:
             print(f"Error in horizontal seam carving: {e}")
             return
-
+ 
+        # Display the final enlarged image
         try:
             self.final_image = Image(enlarged_data_hor)
             self._display_image(self.final_image.mat, self.carved_image_label)
+ 
+            # Set progress to 100% when complete
+            self.progress_bar.setValue(100)
+ 
         except Exception as e:
-            print(f"Error in displaying the carved image: {e}")
+            print(f"Error in displaying the enlarged image: {e}")
             return
+
 
     def _display_image(self, image_data, label):
         height, width, channel = image_data.shape
