@@ -1,7 +1,7 @@
 import sys
 from PySide6.QtWidgets import (
     QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QLabel,
-    QFileDialog, QLineEdit, QApplication, QGroupBox, QComboBox
+    QFileDialog, QLineEdit, QApplication, QGroupBox, QComboBox, QScrollArea, QTabWidget, QProgressBar
 )
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtCore import Qt
@@ -122,30 +122,34 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout()
-        central_widget.setLayout(main_layout)
+        central_widget.setLayout(main_layout)   
 
-        # Add Controls
+        # Add other UI components
         controls_group = self._create_controls_group()
-        main_layout.addWidget(controls_group, alignment=Qt.AlignCenter)
+        main_layout.addWidget(controls_group, alignment=Qt.AlignCenter) 
 
-        # Add Image Display
-        image_display_group = self._create_image_display_group()
-        main_layout.addWidget(image_display_group, stretch=1)
-
-        # Add Enlarge Controls
         enlarge_controls_group = self._create_enlarge_controls_group()
-        main_layout.addWidget(enlarge_controls_group, alignment=Qt.AlignCenter)
+        main_layout.addWidget(enlarge_controls_group, alignment=Qt.AlignCenter) 
+
+        image_display_group = self._create_image_display_group()
+        main_layout.addWidget(image_display_group, stretch=1)   
 
         # Add Export Button
         export_layout = QHBoxLayout()
-        export_layout.setAlignment(Qt.AlignCenter)
-         
+        export_layout.setAlignment(Qt.AlignCenter)  
+
         self.export_button = QPushButton("Export Image")
         self.export_button.setStyleSheet(AppStyles.BUTTON_STYLE)
         self.export_button.clicked.connect(self.export_image)
-        export_layout.addWidget(self.export_button)
-        
-        main_layout.addLayout(export_layout)
+        export_layout.addWidget(self.export_button) 
+
+        main_layout.addLayout(export_layout)    
+
+        # Add Progress Bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        main_layout.addWidget(self.progress_bar)
 
     def _create_controls_group(self):
         controls_group = QGroupBox("Image Controls")
@@ -161,7 +165,7 @@ class MainWindow(QMainWindow):
         self.load_button.setStyleSheet(AppStyles.BUTTON_STYLE)
         self.load_button.clicked.connect(self.load_image)
 
-        # Aspect Ratio Dropdown
+        # Aspect Ratio
         self.aspect_ratio_dropdown = QComboBox()
         self.aspect_ratio_dropdown.addItems(["16:9", "4:5", "1:1", "3:4", "9:16", "Custom"])
         self.aspect_ratio_dropdown.setStyleSheet(AppStyles.DROP_DOWN_STYLE)
@@ -224,14 +228,30 @@ class MainWindow(QMainWindow):
         image_layout = QHBoxLayout()
         image_display_group.setLayout(image_layout)
 
-        self.original_image_label = self._create_image_label("Original Image")
-        self.carved_image_label = self._create_image_label("Resized Image)")
+        # Get scroll area and labels
+        self.original_scroll_area, self.original_image_label = self._create_image_label("Original Image")
+        self.carved_scroll_area, self.carved_image_label = self._create_image_label("Resized Image")
 
-        image_layout.addWidget(self.original_image_label)
-        image_layout.addWidget(self.carved_image_label)
+        # Add scroll areas (containing QLabel) to layout
+        image_layout.addWidget(self.original_scroll_area)
+        image_layout.addWidget(self.carved_scroll_area)
         return image_display_group
 
     def _create_image_label(self, text):
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+
+        image_label = QLabel()
+        image_label.setAlignment(Qt.AlignCenter)
+        image_label.setStyleSheet(AppStyles.IMAGE_LABEL_STYLE)
+        image_label.setText("No Image Loaded")  # Placeholder text
+
+        # Add QLabel to the scroll area
+        scroll_area.setWidget(image_label)
+
+        return scroll_area, image_label
+
+    def _create_image_label1(self, text):
         layout = QVBoxLayout()
         label_text = QLabel(text)
         label_text.setAlignment(Qt.AlignCenter)
@@ -260,6 +280,12 @@ class MainWindow(QMainWindow):
         if file_path:
             print(file_path)
             self.final_image.save(file_path)
+            
+    def _add_progress_bar(self):
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        return self.progress_bar
              
     def ratio_to_num_seams(self, original_width, original_height, aspect_ratio):
         """
@@ -314,6 +340,9 @@ class MainWindow(QMainWindow):
             num_v_seams, num_h_seams = self.ratio_to_num_seams(original_width, original_height, aspect_ratio)
             print(num_v_seams, num_h_seams)
             
+            #Initilize progress bar
+            self.progress_bar.setValue(0)
+            
         except ValueError:
             print("Please enter a valid integer for seams.")
             return
@@ -323,22 +352,31 @@ class MainWindow(QMainWindow):
             carvable_image = CarvableImage(self.original_image)
             carvable_image.energy_function = EnergyCalculator.squared_diff
             carvable_image.seam_function = SeamFinder.find_seam
+            
+            for i in range(1, num_v_seams + 1):
+                carvable_image.seam_carve(1)  # Carve one seam at a time
+                self.progress_bar.setValue(int((i / num_v_seams) * 50))  # Update progress bar for vertical seams
+
             carved_data = carvable_image.seam_carve(num_v_seams).img.mat
+            self.vertical_save = Image(carved_data)
+            
         except Exception as e:
             print(f"Error in vertical seam carving: {e}")
             return
-        
-        self.vertical_save = Image(carved_data)
         
         # Horizontal seam carving (reduce height)
         try:
             carvable_image_hor = CarvableImage(self.vertical_save)
             carvable_image_hor.img.mat = cv2.rotate(carvable_image_hor.img.mat, cv2.ROTATE_90_CLOCKWISE)
-            carvable_image_hor.energy_function = EnergyCalculator.squared_diff
-            carvable_image_hor.seam_function = SeamFinder.find_seam
-            carved_data_hor = carvable_image_hor.seam_carve(num_h_seams).img.mat
-            carved_data_hor = cv2.rotate(carved_data_hor, cv2.ROTATE_90_COUNTERCLOCKWISE)    
-    
+
+            # Perform seam carving one seam at a time and update the progress bar
+            for i in range(1, num_h_seams + 1):
+                carvable_image_hor.seam_carve(1)  # Carve one seam at a time
+                self.progress_bar.setValue(50 + int((i / num_h_seams) * 50))  # Update progress bar for horizontal seams
+
+            # Rotate the final result back to the original orientation
+            carved_data_hor = cv2.rotate(carvable_image_hor.img.mat, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
         except Exception as e:
             print(f"Error in horizontal seam carving: {e}")
             return
@@ -346,6 +384,8 @@ class MainWindow(QMainWindow):
         try:
             self.final_image = Image(carved_data_hor)
             self._display_image(self.final_image.mat, self.carved_image_label)
+            
+            self.progress_bar.setValue(100)  # Set progress to 100% when complete
         except Exception as e:
             print(f"Error in displaying the carved image: {e}")
             return
@@ -402,7 +442,15 @@ class MainWindow(QMainWindow):
         height, width, channel = image_data.shape
         bytes_per_line = 3 * width
         q_img = QImage(image_data.data, width, height, bytes_per_line, QImage.Format_BGR888)
-        label.setPixmap(QPixmap.fromImage(q_img))
+        
+        pixmap = QPixmap.fromImage(q_img)
+        
+        label_size = label.size()
+        scaled_pixmap = pixmap.scaled(
+            label_size.width(), label_size.height(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
+        
+        label.setPixmap(scaled_pixmap)
 
 
 def main():
