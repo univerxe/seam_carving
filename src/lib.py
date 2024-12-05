@@ -141,20 +141,27 @@ class CarvableImage(object):
         enlarged: np.ndarray = self.img.mat.copy()
         carved: np.ndarray = self.img.mat.copy()
 
-        it = trange(num_seams // 10, ncols=100) if show_progress else range(num_seams)
+        it = trange(num_seams, ncols=100) if show_progress else range(num_seams)
 
         seams_to_insert = []
-        adjusted_seams = []
-        for _ in range(num_seams):
+        for _ in it:
             energy_map = self.energy_function(carved)
             seam = self.seam_function(energy_map)
-            seams_to_insert.append(seam)
-            carved = draw_seam(carved, seam)
+            carved = carve_seam(carved, seam)
+
+            adjusted_seams = []
+            for s in seams_to_insert:
+                adjusted_seam = s.copy()
+                for i in range(len(seam)):
+                    if adjusted_seam[i] + 1 >= seam[i]:
+                        adjusted_seam[i] += 1
+                adjusted_seams.append(adjusted_seam)
+
+            adjusted_seams.append(seam)
+            seams_to_insert = adjusted_seams.copy()
 
         for seam in reversed(seams_to_insert):
             enlarged = carve_seam_enlarge(enlarged, seam)
-
-
 
         return CarvableImage(
             Image(enlarged),
